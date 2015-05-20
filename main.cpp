@@ -2,50 +2,29 @@
 #include "opencv2/imgproc.hpp"
 #include "opencv2/highgui.hpp"
 #include <iostream>
-
+#include <fstream>
+#include "settings.hpp"
 using namespace cv;
 using namespace std;
 
-
 /*
- *  Define all the threshold used in license plate recognize
+ * 使用的诸多常量和阈值定义在settings.hpp当中
  */
 
-/*
- * 边缘检测的阈值(Canny算子用)
- */
-const int EDGE_THRESHOLD = 30;
 
 /*
- * 测试用图片路径
+ * 使用原图生成边缘图像
+ * 1. 灰度化
+ * 2. Sobel算子边缘检测(为了检测竖直边缘)
+ * 3. 二值化(OTSU)
  */
-const string PROJECT_PATH = "/Users/WinKaR/ClionProjects/LPR/";
-
-/*
- * 两个连续跳变之间的最长距离
- */
-const int JUMP_INTERVAL = 10;
-
-/*
- * 有效连续跳变的最大数量, 最小数量
- */
-const int JUMP_COUNT_MAX = 20;
-const int JUMP_COUNT_MIN = 10;
-
-/*
- * 二值化后的最大值
- */
-const int MAX_VALUE = 255;
-
-/*
- * 连续跳变线段端点之间的最大距离
- */
-const int BOUND_INTERVAL = 10;
+Mat getEdge(Mat& image);
 
 
 int main()
 {
     cout << "Built with OpenCV " << CV_VERSION << endl;
+
 
     Mat image = imread(PROJECT_PATH + "test2.BMP");
     if (image.empty()) {
@@ -53,21 +32,8 @@ int main()
         return 1;
     }
 
-    /*
-     * generate the edge of origin image
-     * use sobel operator to get vertical edge
-     */
-    Mat gray, edge;
-    cvtColor(image, gray, COLOR_BGR2GRAY);
 
-//    imshow("gray", gray);
-    Sobel(gray, edge, edge.depth(), 2, 0, 3);
-
-
-    /*
-     *  use threshold to binarize the image
-     */
-    threshold(edge, edge, 100, MAX_VALUE, cv::THRESH_OTSU | cv::THRESH_BINARY);
+    Mat edge = getEdge(image);
 
     if (! imwrite(PROJECT_PATH + "edge.png", edge))  {
         cout << "write image failed" << endl;
@@ -84,13 +50,6 @@ int main()
         ncol = edge.cols;
 
 
-    int leftSide = -1,
-        rightSide = -1,
-        top = -1,
-        bottom = -1;
-
-
-
     for (int i =0; i<nrow; ++i) {
 
         /*
@@ -104,10 +63,14 @@ int main()
         int last_jump = -1;
         int jumps = 0;
 
+        /*
+         * left_bound 线段左边界
+         * 右边界由扫描终止时确定
+         */
         int left_bound = -1;
 
         for (int j=0; j<ncol; ++j) {
-            int pt = image.at<uchar>(i, j);
+            int pt = edge.at<uchar>(i, j);
             /*
              * 每行的第一个点
              */
@@ -137,27 +100,24 @@ int main()
                  */
                 else {
                     /*
-                     * 如果与上一个跳变点过远,则判断为不属于该线段
-                     * 更新右边界
-                     * 如果线段的长度已经足够, 且与当前车牌区域的左右边界接近, 则将用该线段更新左右边界, 退出本行
+                     * 如果与上一个跳变点过远,则判断为不属于该线段, 处理该线段,并启用新线段
                      * 否则以当前点为左端点,查找新的线段
                      */
                     if (j - last_jump > JUMP_INTERVAL) {
-                        if (jumps > JUMP_COUNT_MIN && jumps < JUMP_COUNT_MAX
-                            && abs(left_bound - leftSide) < BOUND_INTERVAL
-                            && abs(last_jump - rightSide) < BOUND_INTERVAL) {
-                            leftSide = min(leftSide, left_bound);
-                            rightSide = max(last_jump, rightSide);
-                            if (top == -1) {
-                                top = i;
+                        const int length = last_jump - left_bound;
+
+                        if (length > JUMP_LENGTH_MIN && length < JUMP_LENGTH_MAX) {
+                            /*
+                             * 将线段涂白色
+                             */
+                            for (int k=left_bound; k<=last_jump; ++k) {
+                                edge.at<uchar>(i, k) = 255;
                             }
-                            bottom = i;
-                            break;
-                        } else {
-                            last_jump = j;
-                            jumps = 1;
-                            left_bound = j;
                         }
+
+                        last_jump = j;
+                        jumps = 1;
+                        left_bound = j;
                     }
                     /*
                      * 与上一个跳变点接近, 则将点加入该线段
@@ -168,16 +128,46 @@ int main()
                     }
                 }
             }
+
+            /*
+             * 处理线段一直持续到图片右边缘的情况
+             */
+            if (j == ncol - 1) {
+                for (int k = left_bound; k<= last_jump; ++k) {
+                    edge.at<uchar>(i, k) = 255;
+                }
+            }
         }
+
+
     }
 
-    for (int i = top; i<=bottom; ++i) {
-        for (int j = leftSide; j<= rightSide; ++j) {
-            edge.at<uchar>(i, j) = 255;
-        }
-    }
-
-    imshow("license plate", edge);
+    imshow("lines found", edge);
     waitKey(0);
     return 0;
+}
+
+
+
+
+Mat getEdge(Mat& image) {
+    /*
+     * generate the edge of origin image
+     * use sobel operator to get vertical edge
+     */
+    Mat gray, edge;
+    cvtColor(image, gray, COLOR_BGR2GRAY);
+
+    /*
+     * 生成边缘图像
+     */
+    Sobel(gray, edge, edge.depth(), 2, 0, 3);
+
+
+    /*
+     *  use threshold to binarize the image
+     */
+    threshold(edge, edge, 100, MAX_VALUE, cv::THRESH_OTSU | cv::THRESH_BINARY);
+
+    return edge;
 }
