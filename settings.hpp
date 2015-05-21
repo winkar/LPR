@@ -55,4 +55,9 @@ const double MIN_LINE_LENGTH = 60;
 const double MAX_LINE_GAP = 30;
 
 
+/*
+ * 有效轮廓点数下限
+ */
+const int LEAST_POINTS = 20;
+
 #endif //LPR_SETTINGS_HPP

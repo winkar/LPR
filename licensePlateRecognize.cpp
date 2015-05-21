@@ -36,11 +36,17 @@ void findLines(Mat& edges, map<int, vector<plate_line>>&, vector<plate_line>&);
  */
 bool isAvailable(const plate_line& pl, int left_bound, int right_bound);
 
+
+/*
+ * 寻找车牌区域
+ */
 plateArea findPlate(Mat& edge);
 
 Mat getPlateImage(const Mat& image, const plateArea &plate);
 
 Mat angleAdjustment(const Mat& plate);
+
+
 
 int main()
 {
@@ -62,9 +68,14 @@ int main()
     }
 
     Mat edge = getEdge(image);
+//    imshow("edge", edge);
 
 
     plateArea plate = findPlate(edge);
+    if (!plate) {
+        cout << "plate not found!" << endl;
+        return 1;
+    }
 
 //    for (int i =p.top; i<=p.bottom; ++i) {
 //        for (int j = p.left; j<=p.right; ++j) {
@@ -77,9 +88,44 @@ int main()
     imshow("origin_plate", plate_image);
 
     plate_image = angleAdjustment(plate_image);
+    imshow("adjusted", plate_image);
+    /*
+     *
+     */
+//    Mat labels;
+//    cvtColor(plate_image, labels, COLOR_BGR2GRAY);
+////    threshold(labels, labels, 100, MAX_VALUE, cv::THRESH_OTSU | cv::THRESH_BINARY);
+//    Canny(labels, labels, 30, 90);
+//
+////    erode(labels, labels, getStructuringElement(MORPH_ERODE, Size(1,2)));
+//    imshow("after erode ", labels);
+//
+//    vector<vector<Point> > contours0;
+//    vector<Vec4i> hierarchy;
+//    findContours(labels, contours0, hierarchy,CV_RETR_EXTERNAL, CHAIN_APPROX_SIMPLE);
+////    int cnt =0;
+////    for (auto& ct: contours0){
+////        if (ct.size() < LEAST_POINTS) continue;
+//////        int top=labels.rows,bottom=-1, left=labels.cols, right=-1;
+////        cout <<"ct:"<< cnt ++ <<endl;
+////        for (auto& pt: ct) {
+//////            top = min(top, pt.x);
+//////            bottom = max(bottom, pt.x);
+//////            left = min(left, pt.y);
+//////            right = max(right, pt.y);
+////            cout <<"\t"<< pt.x << " "<< pt.y <<endl;
+////        }
+//////        rectangle(plate_image, Rect(Point(top, left), Point(bottom, right)), Scalar(0,0,255));
+////    }
+//    int idx = 0;
+//    for( ; idx >= 0; idx = hierarchy[idx][0] )
+//    {
+//        Scalar color( 0, 0, 255 );
+//        drawContours( plate_image, contours0, idx, color, FILLED, 8, hierarchy );
+//    }
+//    imshow("contours", plate_image);
 
-    imshow("plate", plate_image);
-
+//    imshow("cc", labels);
     waitKey(0);
     return 0;
 }
@@ -102,18 +148,19 @@ Mat angleAdjustment(const Mat& plate){
     for( size_t i = 0; i < lines.size(); i++ )
     {
 //        line( color_dst, Point(lines[i][0], lines[i][1]),
-//              Point(lines[i][2], lines[i][3]), Scalar(0,0,255), 3, 8 );
+//              Point(lines[i][2], lines[i][3]), Scalar(0,0,255), 1, 8 );
         tanA += double(lines[i][3] - lines[i][1]) / double(lines[i][0]-lines[i][2]);
     }
 
-
+//    imshow("color", color_dst);
     tanA /= double(lines.size());
 
-    cout << tanA <<endl;
+//    cout << tanA <<endl;
 
     for (int i=0; i<plate.rows;++i) {
         for (int j=0; j<plate.cols; ++j) {
-            new_plate.at<Vec3b>(i,j) = plate.at<Vec3b>(i, cvRound(j+ tanA*i));
+//            new_plate.at<Vec3b>(i,j) = plate.at<Vec3b>(int(i-j*tanA), int(j+ tanA*i));
+            new_plate.at<Vec3b>(i,j) = plate.at<Vec3b>(int(i-j*tanA), int(j));
         }
     }
 
@@ -150,7 +197,7 @@ plateArea findPlate(Mat& edge) {
     findLines(edge, lines_map, lines);
 
     sort(lines.begin(), lines.end());
-
+//    for (auto line:lines) cout <<line;
     /*
      * 对于每一条线段
      * 按行往下找出符合边界条件的线段,

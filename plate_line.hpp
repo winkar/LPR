@@ -30,7 +30,7 @@ public:
     plate_line(int linenum, int start, int end): linenum(linenum), start(start), end(end) {}
     plate_line() {linenum=start=end=0;}
     friend bool operator<(const plate_line& p1, const plate_line& p2);
-
+    friend ostream& operator<<(ofstream& of, const plate_line& pl);
 
     operator bool() {
         return linenum || start || end;
@@ -41,5 +41,11 @@ bool operator<(const plate_line& p1, const plate_line& p2) {
     if (p1.linenum != p2.linenum) return (p1.linenum < p2.linenum);
     return (p1.start < p2.start);
 }
+
+ostream& operator<<(ostream& of, const plate_line& pl) {
+    of << "linenum:" << pl.linenum << " "<<"start:" << pl.start << " "<<"end:"<<pl.end<<endl;
+    return of;
+}
+
 
 #endif //LPR_LINE_HPP
