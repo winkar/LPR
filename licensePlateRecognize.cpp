@@ -9,6 +9,9 @@
 #include <string>
 #include <map>
 
+
+#define OUTPUT_RESULT
+
 using namespace cv;
 using namespace std;
 
@@ -86,22 +89,22 @@ int main()
 
 
     Mat plate_image = getPlateImage(image, plate);
-    imshow("origin_plate", plate_image);
+    // imshow("origin_plate", plate_image);
 
     plate_image = angleAdjustment(plate_image);
-    imshow("adjusted", plate_image);
+    // imshow("adjusted", plate_image);
 
     vector<Mat> chars = splitChars(plate_image);
 //    for (auto c:chars) {
 //        imshow("char" +  , c);
 //    }
     for (int i=0; i<chars.size();++i) {
-        imwrite(PROJECT_PATH+"/char"+ to_string(i) + ".jpg", chars[i]);
+        imwrite(PROJECT_PATH+"/build/chars/char"+ to_string(i) + ".jpg", chars[i]);
     }
 
 
 
-    waitKey(0);
+    // waitKey(0);
     return 0;
 }
 
@@ -239,10 +242,10 @@ vector<Mat> splitChars(const Mat& plate) {
 
 //    cout << top <<" "<< bottom << endl;
 //    cout << left << " " << right << endl;
-    imshow("gray", gray);
+    // imshow("gray", gray);
 
     Mat cut_plate = gray(Range(top ,bottom), Range(left, right));
-    imshow("cut", cut_plate);
+    // imshow("cut", cut_plate);
 //    cout << cut_plate.cols << " " << cut_plate.rows << endl;
 
     verProject.clear();
