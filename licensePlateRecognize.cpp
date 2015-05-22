@@ -1,6 +1,6 @@
-#include "opencv2/core.hpp"
-#include "opencv2/imgproc.hpp"
-#include "opencv2/highgui.hpp"
+#include "opencv2/core/core.hpp"
+#include "opencv2/imgproc/imgproc.hpp"
+#include "opencv2/highgui/highgui.hpp"
 #include <iostream>
 #include "settings.hpp"
 #include <vector>
@@ -98,7 +98,7 @@ int main()
 //    for (auto c:chars) {
 //        imshow("char" +  , c);
 //    }
-    for (int i=0; i<chars.size();++i) {
+    for (int i=1; i<chars.size();++i) {
         imwrite(PROJECT_PATH+"/build/chars/char"+ to_string(i) + ".jpg", chars[i]);
     }
 

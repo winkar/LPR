@@ -1,4 +1,4 @@
-# from predict import lpr
+from predict import lpr
 import subprocess
 import os
 import os.path
@@ -18,4 +18,4 @@ subprocess.check_call("make".split())
 subprocess.check_call("./LPR".split())
 
 import pprint
-# pprint.pprint(lpr("build/chars"))
+pprint.pprint(lpr("chars"))

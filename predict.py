@@ -37,8 +37,10 @@ def predict(path,svm):
     return L[index]
 
 def lpr(path):
-    svm=cv2.SVM()
-    svm.load('LPR.xml')
+    # svm=cv2.ml.SVM_create()
+    svm = cv2.SVM()
+    # print help(svm)
+    svm.load('../LPR.xml')
     if not path:
         path=sys.argv[1]
     im_list=os.listdir(path)
@@ -47,10 +49,11 @@ def lpr(path):
         name=os.path.join(path,im)
         s=predict(name,svm)
         ans[im]=s
-    for k,v in ans.items():
-        print k,v
+    # for k,v in sorted(ans.items()):
+    #     print k,v
 
         
+    return ans
 
 # lpr()
 
