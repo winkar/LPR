@@ -6,6 +6,7 @@
 #include <vector>
 #include "plate_line.hpp"
 #include <algorithm>
+#include <string>
 #include <map>
 
 using namespace cv;
@@ -46,7 +47,7 @@ Mat getPlateImage(const Mat& image, const plateArea &plate);
 
 Mat angleAdjustment(const Mat& plate);
 
-
+vector<Mat> splitChars(const Mat& plate);
 
 int main()
 {
@@ -89,43 +90,17 @@ int main()
 
     plate_image = angleAdjustment(plate_image);
     imshow("adjusted", plate_image);
-    /*
-     *
-     */
-//    Mat labels;
-//    cvtColor(plate_image, labels, COLOR_BGR2GRAY);
-////    threshold(labels, labels, 100, MAX_VALUE, cv::THRESH_OTSU | cv::THRESH_BINARY);
-//    Canny(labels, labels, 30, 90);
-//
-////    erode(labels, labels, getStructuringElement(MORPH_ERODE, Size(1,2)));
-//    imshow("after erode ", labels);
-//
-//    vector<vector<Point> > contours0;
-//    vector<Vec4i> hierarchy;
-//    findContours(labels, contours0, hierarchy,CV_RETR_EXTERNAL, CHAIN_APPROX_SIMPLE);
-////    int cnt =0;
-////    for (auto& ct: contours0){
-////        if (ct.size() < LEAST_POINTS) continue;
-//////        int top=labels.rows,bottom=-1, left=labels.cols, right=-1;
-////        cout <<"ct:"<< cnt ++ <<endl;
-////        for (auto& pt: ct) {
-//////            top = min(top, pt.x);
-//////            bottom = max(bottom, pt.x);
-//////            left = min(left, pt.y);
-//////            right = max(right, pt.y);
-////            cout <<"\t"<< pt.x << " "<< pt.y <<endl;
-////        }
-//////        rectangle(plate_image, Rect(Point(top, left), Point(bottom, right)), Scalar(0,0,255));
-////    }
-//    int idx = 0;
-//    for( ; idx >= 0; idx = hierarchy[idx][0] )
-//    {
-//        Scalar color( 0, 0, 255 );
-//        drawContours( plate_image, contours0, idx, color, FILLED, 8, hierarchy );
-//    }
-//    imshow("contours", plate_image);
 
-//    imshow("cc", labels);
+    vector<Mat> chars = splitChars(plate_image);
+//    for (auto c:chars) {
+//        imshow("char" +  , c);
+//    }
+    for (int i=0; i<chars.size();++i) {
+        imwrite(PROJECT_PATH+"/char"+ to_string(i) + ".jpg", chars[i]);
+    }
+
+
+
     waitKey(0);
     return 0;
 }
@@ -169,13 +144,149 @@ Mat angleAdjustment(const Mat& plate){
 }
 
 
+vector<Mat> splitChars(const Mat& plate) {
+    Mat gray;
+
+    cvtColor(plate, gray, COLOR_BGR2GRAY);
+
+    threshold(gray, gray, 100, MAX_VALUE, THRESH_BINARY | THRESH_OTSU);
+
+
+    /*
+     * 首先做水平投影,以去除上下边框
+     */
+
+    int rows = gray.rows, cols = gray.cols;
+
+    vector<int> horProject;
+
+    for (int i=0; i<rows; ++i) {
+        int cx =0 ;
+        for (int j=0; j< cols; ++j) {
+            cx += gray.at<uchar>(i,j) / MAX_VALUE;
+        }
+        horProject.push_back(cx);
+    }
+
+
+    int top=-1, bottom =-1;
+    bool border=false, leave_border=false , chars=false;
+    for (int i=0;i<horProject.size(); ++i) {
+        /*
+         * 从上到下扫描
+         * border标记为是否进入了车牌边框区域
+         * chars 标记是否已经进入车牌字符区域
+         */
+        if (horProject[i] < HORIZONTAL_THRESHOLD) {
+            /*
+             * 未进入车牌区域的部分忽略
+             * 若已经进入边框, 但未进入字符区域, 投影较小, 说明离开了边框区域
+             * 已经进入车牌区域, 却投影很小, 说明已经离开字符区域
+             */
+            if (!border) {
+                continue;
+            }
+            if (border && !chars) {
+                leave_border = true;
+            }
+            if (chars) {
+                bottom = i;
+                break;
+            }
+        }
+        else {
+            /*
+             * 投影较大, 却未进入边框,说明为上边框
+             */
+            if (!border) {
+                border = true;
+                continue;
+            }
+            /*
+             * 投影较大,且已经离开边框,但未进入字符区域,则进入字符区域
+             */
+            if (leave_border&&!chars) {
+                top = i;
+                chars = true;
+            }
+        }
+    }
+//    cout << top <<" "<< bottom << endl;
+
+
+    /*
+     * 竖直投影, 分割字符.
+     */
+    vector<int> verProject;
+    vector<Mat> splitedChars;
+
+    for (int j=0;j<cols; ++j) {
+        int cx=0;
+        for (int i=0;i<rows;++i) {
+            cx += gray.at<uchar>(i,j) / MAX_VALUE;
+        }
+        verProject.push_back(cx);
+    }
+
+//    for (int i=0;i<verProject.size();++i) cout <<verProject[i]<<endl;
+
+    int left=0, right=verProject.size()-1;
+    while (left<verProject.size() && verProject[left]<VERTICAL_THRESHOLD) left++;
+    while (left<verProject.size() && verProject[left]>=VERTICAL_THRESHOLD) left++;
+
+    while (right>=0 && verProject[right]<VERTICAL_THRESHOLD) right--;
+    while (right>=0 && verProject[right]>=VERTICAL_THRESHOLD) right--;
+
+//    cout << top <<" "<< bottom << endl;
+//    cout << left << " " << right << endl;
+    imshow("gray", gray);
+
+    Mat cut_plate = gray(Range(top ,bottom), Range(left, right));
+    imshow("cut", cut_plate);
+//    cout << cut_plate.cols << " " << cut_plate.rows << endl;
+
+    verProject.clear();
+    for (int j=0;j<cut_plate.cols; ++j) {
+        int cx=0;
+        for (int i=0;i<cut_plate.rows;++i) {
+            cx += cut_plate.at<uchar>(i,j)/MAX_VALUE;
+        }
+        verProject.push_back(cx);
+//        cout << cx<< endl;
+    }
+
+    int pos =0;
+
+    while (pos < verProject.size()) {
+        int l, r;
+        while (pos < verProject.size() && verProject[pos]<CHAR_THRESHOLD) pos++;
+        l = pos;
+        while (pos < verProject.size() && verProject[pos]>=CHAR_THRESHOLD) pos++;
+        r = pos;
+//        cout << l << " " << r<< endl;
+//        cout << r-l << endl;
+        if (r-l < CHAR_ONE_WIDTH) {
+            l -=EXPAND_ONE;
+            r += EXPAND_ONE;
+        }
+        splitedChars.push_back(plate(Range(top, bottom), Range(l+ left, r + left)));
+    }
+
+
+//    imshow("cut", cut_plate);
+
+
+
+    return splitedChars;
+};
+
 Mat getPlateImage(const Mat& image, const plateArea &plate){
     /*
      * 扩展车牌区域, 否则找到的区域小于车牌区域
      */
 
-    int top = max(0, plate.top - EXPAND_VERTICAL),
-        bottom = min(image.rows-1, plate.bottom + EXPAND_VERTICAL),
+    int top = max(0, plate.top - EXPAND_TOP),
+        bottom = min(image.rows-1, plate.bottom + EXPAND_BOTTOM),
         left = max(0, plate.left - EXPAND_HORIZONTAL),
         right = min(image.cols-1, plate.right + EXPAND_HORIZONTAL);
 

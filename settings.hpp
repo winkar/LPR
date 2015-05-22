@@ -43,7 +43,8 @@ const int PLATE_WIDTH_MAX = 20;
 /*
  * 找到车牌之后, 竖直方向和水平方向的扩展长度.
  */
-const int EXPAND_VERTICAL = 10;
+const int EXPAND_TOP = 5;
+const int EXPAND_BOTTOM = 10;
 const int EXPAND_HORIZONTAL = 0;
 
 /*
@@ -56,8 +57,16 @@ const double MAX_LINE_GAP = 30;
 
 
 /*
- * 有效轮廓点数下限
+ * 车牌水平投影阈值
+ * 车牌竖直投影阈值
+ * 切分字符时的阈值
+ * 对字符1的扩展
  */
-const int LEAST_POINTS = 20;
+const int HORIZONTAL_THRESHOLD = 15;
+const int VERTICAL_THRESHOLD = 10;
+const int CHAR_THRESHOLD = 1;
+const int CHAR_ONE_WIDTH = 3;
+const int EXPAND_ONE = 2;
+
 
 #endif //LPR_SETTINGS_HPP
