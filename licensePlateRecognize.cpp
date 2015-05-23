@@ -10,7 +10,7 @@
 #include <map>
 
 
-#define OUTPUT_RESULT
+
 
 using namespace cv;
 using namespace std;
@@ -66,12 +66,18 @@ int main()
 
 
     Mat image = imread(PROJECT_PATH + "test2.BMP");
+    if (WRITING_OUTPUT) {
+        imwrite(PROJECT_PATH + "build/midImages/0-原图像.jpg", image);
+    }
     if (image.empty()) {
         cout << "image not found!"<<endl;
         return 1;
     }
 
     Mat edge = getEdge(image);
+    if (WRITING_OUTPUT) {
+        imwrite(PROJECT_PATH + "build/midImages/1-二值化边缘图像.jpg", edge);
+    }
 //    imshow("edge", edge);
 
 
@@ -89,9 +95,15 @@ int main()
 
 
     Mat plate_image = getPlateImage(image, plate);
+    if(WRITING_OUTPUT) {
+        imwrite(PROJECT_PATH + "build/midImages/3-车牌区域.jpg", plate_image);
+    }
     // imshow("origin_plate", plate_image);
 
     plate_image = angleAdjustment(plate_image);
+    if(WRITING_OUTPUT) {
+        imwrite(PROJECT_PATH + "build/midImages/4-矫正后的车牌区域.jpg", plate_image);
+    }
     // imshow("adjusted", plate_image);
 
     vector<Mat> chars = splitChars(plate_image);
@@ -311,6 +323,15 @@ plateArea findPlate(Mat& edge) {
     findLines(edge, lines_map, lines);
 
     sort(lines.begin(), lines.end());
+    if (WRITING_OUTPUT) {
+        Mat tmp = edge.clone();
+        for (auto line: lines) {
+            for (int j=line.start;j<line.end;++j){
+                tmp.at<uchar>(line.linenum, j) = MAX_VALUE;
+            }
+        }
+        imwrite(PROJECT_PATH + "build/midImages/2-可能的车牌区域.jpg", tmp);
+    }
 //    for (auto line:lines) cout <<line;
     /*
      * 对于每一条线段

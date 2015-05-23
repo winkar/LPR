@@ -6,6 +6,8 @@
 #define LPR_SETTINGS_HPP
 using namespace std;
 
+
+const bool WRITING_OUTPUT = true;
 /*
  * 项目路径
  */
