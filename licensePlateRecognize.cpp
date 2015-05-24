@@ -65,7 +65,8 @@ int main()
     cout << "Built with OpenCV " << CV_VERSION << endl;
 
 
-    Mat image = imread(PROJECT_PATH + "test2.BMP");
+    // Mat image = imread(PROJECT_PATH + "test2.BMP");
+    Mat image = imread(PROJECT_PATH + "test5.jpg");
     if (WRITING_OUTPUT) {
         imwrite(PROJECT_PATH + "build/midImages/0-原图像.jpg", image);
     }

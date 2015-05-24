@@ -27,7 +27,7 @@ subprocess.check_call("./LPR".split())
 
 results = lpr("chars")
 
-char_images = os.listdir("chars")
+char_images = sorted(os.listdir("chars"))
 
 plate = "苏"
 for char in char_images:
